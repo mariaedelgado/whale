@@ -96,17 +96,16 @@ int main(int argc, char** argv) {
 
   // Variable initialization !!!!!!!!!!1 delete gyro vars
   // Position
-  double rate = 10.0;
-  double linear_scale_positive = 1.0;
-  double linear_scale_negative = 1.0;
-  double angular_scale_positive = 1.0;
-  double angular_scale_negative = 1.0;
+  double rate = 10.0;                     // Publish rate for odom and tf
+  double linear_scale_positive = 1.0;     // Amount to scale translational velocity in positive x direction 
+  double linear_scale_negative = 1.0;     // Amount to scale translational velocity in negative x direction
+  double angular_scale_positive = 1.0;    // Amount to scale rotational velocity counterclockwise
+  double angular_scale_negative = 1.0;    // Amount to scale rotational velocity clockwise
   double angular_scale_accel = 1.0;
   double acc_theta = 0.0;
   double acc_x = 0.0;
   double acc_max_theta = 0.0;
   double acc_max_x = 0.0;
-  double alpha = 0.0;
   bool publish_tf = true;
 
   // Differentials

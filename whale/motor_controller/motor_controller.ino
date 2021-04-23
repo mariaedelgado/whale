@@ -79,7 +79,7 @@ void handle_cmd(const geometry_msgs::Twist& cmd_msg) {
   double z = cmd_msg.angular.z;
 
   if(z==0) {        // no angular info: wheelchair goes straight. Convert from m/s to rpm
-    rpm_req1 = x*(60/(pi*wheel_diameter));
+    rpm_req1 = x*(60/(2*pi*wheel_diameter));
     rpm_req2 = rpm_req1;
   }
   else if(x == 0) { // no linear info: wheelchair is changing of angle. Convert rad/s to rpm
