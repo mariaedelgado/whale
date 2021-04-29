@@ -9,6 +9,11 @@ All in all:
 ## Functions
 ### int main(int argc, char** argv)
 
+The main function carries all the tasks for getting the motor information, transforming it into odometry format and publishing it. Step by step, it:
+- Creates a Node Handler for publishing Odometry messages and subscribes to the rpm topic.
+- Converts rpm to x, y, rotation by
+
+
 ### void handle_rpm(const geometry_msgs::Vector3Stamped% rpm)
 
 The rpm handler function subscribes to the rpm topic, sent by the base controller to obtain the current information about the motors. It basically gets:

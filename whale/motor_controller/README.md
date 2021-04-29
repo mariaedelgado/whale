@@ -11,7 +11,6 @@ The setup function initializes the proper functions and variables to start worki
 - Variable initialization to 0 of the tick counters (count1, count2, countAnt1, countAnt2), the speeds (both rpm_req1, rpm_req2 and rpm_act1, rpm_act2) and the pulse width modulation (PWM_val1, PWM_val2).
 - Initialization of ROS Node Handler.
 - Sets Arduino pins.
-- Inits servomotors.
 
 ##### void loop()
 
@@ -38,5 +37,3 @@ The RPM publisher function is responsible for constructing the ROS message to se
 - In x, the rpm of servo 1.
 - In y, the rpm of servo 2.
 - In z, the time (in ms) between this event and the last event.
-
-### Get data from motors
