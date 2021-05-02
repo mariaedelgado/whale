@@ -117,12 +117,8 @@ int main(int argc, char** argv) {
   double dy = 0.0;
   double dtheta = 0.0;
 
-
   double dyaw_odom = 0.0;
   double dyaw = 0.0;
-  double dyaw_prev = 0.0;
-  double dyaw_curr = 0.0;
-  double dxy_prev = 0.0;
   double dxy_ave = 0.0;
   double vx = 0.0;
   double vy = 0.0;
@@ -134,7 +130,8 @@ int main(int argc, char** argv) {
 
   ros::Duration d(1.0);
 
-  // Get parameters ??????????????????????????????????????????????????
+  // Get parameters
+  nh_private_.getParam("publish_rate", rate);
   nh_private_.getParam("linear_scale_positive", linear_scale_positive);
   nh_private_.getParam("linear_scale_negative", linear_scale_negative);
   nh_private_.getParam("angular_scale_positive", angular_scale_positive);
@@ -166,7 +163,7 @@ int main(int argc, char** argv) {
 
     /* Publish messages */
     // TF topic
-    geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(yaw);
+    geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 
     geometry_msgs::TransformStamped t;
     t.header.frame_id = odom;
@@ -188,8 +185,8 @@ int main(int argc, char** argv) {
     odom_msg.pose.pose.orientation = odom_quat;
 
     set_covariance(vel_actual_right, vel_actual_left);
-    vx = (dt == 0)? 0 : dxy_ave/dt;
-    vth = (dt == 0)? 0 : dyaw/dt;
+    vx = (dt == 0)? 0 : vel_translational/dt;
+    vth = (dt == 0)? 0 : dtheta/dt;
 
     odom_msg.child_frame_id = base_link;
     odom_msg.twist.twist.linear.x = vx;
