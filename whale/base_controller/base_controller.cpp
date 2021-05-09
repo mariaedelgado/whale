@@ -145,22 +145,17 @@ int main(int argc, char** argv) {
     current_time = ros::Time::now();
 
     // Compute x, y, yaw from actual velocities. Source: https://core.ac.uk/download/pdf/81937972.pdf
-    dt = vel_dt;
-
     vel_translational = (vel_actual_right + vel_actual_left)/2;
-    vel_angular = (vel_actual_right - vel_actual_left)*track_width;
+    vel_angular = (vel_actual_right - vel_actual_left)/track_width;
     
     dtheta = vel_angular;
     dx = cos(theta)*vel_translational;
-    dy = -sin(theta)*vel_translational;
+    dy = sin(theta)*vel_translational;
 
-    x_pos += (cos(dtheta) * dx - sin(dtheta) * dy);
-    y_pos += (sin(dtheta) * dx + cos(dtheta) * dy);
-    theta += dtheta;
+    x_pos += (dx*cos(dtheta) - dy*sin(dtheta)) *dt;
+    y_pos += (dx*sin(dtheta) + dy*cos(dtheta)) *dt;
+    theta += dtheta*dt;
     
-    if(theta >= two_pi) theta -= two_pi;
-    if(theta <= -two_pi) theta += two_pi;
-
     /* Publish messages */
     // TF topic
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
