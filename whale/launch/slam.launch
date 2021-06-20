@@ -1,5 +1,5 @@
 <launch>
-    <include file="$(find whale)/launch/mapping_inputs.launch"/>
+    <include file="mapping_inputs.launch"/>
  
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
         <!--remap from="scan" to="base_scan"/-->
@@ -38,5 +38,5 @@
         <param name="transform_publish_period" value="0.1"/>
     </node>
 
-    <node pkg="rviz" name="rviz" type="rviz" args="-d $(find whale)/launch/rviz/slam.rviz"/>
+    <node pkg="rviz" name="rviz" type="rviz" args="-d rviz/slam.rviz"/>
 </launch>

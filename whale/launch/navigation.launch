@@ -1,0 +1,26 @@
+  
+<launch>
+  <master auto="start"/>
+
+  <!-- Run laser scan and odometry -->
+  <include file="mapping_inputs.launch" />
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="maps/map4.pgm 0.05"/>
+
+  <!-- Run AMCL -->
+  <include file="amcl.launch" />
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="params/local_costmap_params.yaml" command="load" />
+    <rosparam file="params/global_costmap_params.yaml" command="load" />
+    <rosparam file="params/base_local_planner_params.yaml" command="load" />
+    <rosparam file="params/move_base_params.yaml" command="load" />
+    <rosparam file="params/global_planner_params.yaml" command="load" />
+    <rosparam file="params/navfn_global_planner_params.yaml" command="load" />
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d launch/rviz/amcl.rviz"/>
+</launch>

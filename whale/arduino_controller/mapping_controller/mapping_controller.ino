@@ -13,13 +13,15 @@
 #include <ros/time.h>
 #include <geometry_msgs/Vector3Stamped.h>
 
+#define USE_USBCON
+
 #define pinJoyX       A0
 #define pinJoyY       A1
-#define pinJoyButton  10
 
-#define pinFORWARD    
-#define pinREVERSE
-#define pinONOFF
+#define pinFORWARD    13
+#define pinREVERSE    12
+#define pinLEFT       11
+#define pinRIGHT      10
 
 #define LOOPTIME      100
 
@@ -34,6 +36,9 @@ unsigned long lastMilli;
 #define VELOCITY_REVERSE        1.35
 #define ACCELERATION_REVERSE    1.35
 
+#define VELOCITY_TURN           2.5
+#define ACCELERATION_TURN       1.4
+
 double vel_actual_right;
 double vel_actual_left;
 
@@ -44,11 +49,9 @@ bool is_wheelchair_on;
 
 int joystick_x;
 int joystick_y;
-bool joystick_button;
 
 int prev_joystick_x;
 int prev_joystick_y;
-bool prev_joystick_button;
 
 // --------------------------------------------------------------//
 // --------------------------- FUNCTIONS ------------------------//
@@ -63,7 +66,11 @@ void publish_velocity(unsigned long time) {
   vel_msg.vector.y = vel_actual_left;
   vel_msg.vector.z = double(time)/1000;
   vel_msg.header.stamp = nh.now();
-
+  Serial.print(" ** Vel right: ");
+  Serial.print(vel_actual_right);
+  Serial.print(" / Vel left: ");
+  Serial.print(vel_actual_left);
+  Serial.print(" **");
   vel_publisher.publish(&vel_msg);
   nh.spinOnce();
 }
@@ -74,6 +81,12 @@ int get_actual_directions(int joystick_x, int joystick_y) {
   } 
   else if( (joystick_x > 1020) && (joystick_y > 502) ) { // if REVERSE, return 2
     return(2);
+  }
+  else if( (joystick_x > 502) && (joystick_y > 1020) ) { // if LEFT, return 3
+    return(3);
+  }
+  else if( (joystick_x > 502) && (joystick_y < 5) ) { // if RIGHT, return 4
+    return(4);
   }
   else {
     return(0);
@@ -89,39 +102,73 @@ void get_actual_velocity(unsigned long time_since_last_command, int command) {  
   } else if( command == 2 ) { // REVERSE
     acceleration = - ACCELERATION_REVERSE;
     velocity = - VELOCITY_REVERSE;
-  }
-  else if( command == 0) {
+  } else if( command == 3 || command == 4) { // LEFT OR RIGHT
+    acceleration = ACCELERATION_TURN;
+    velocity = VELOCITY_TURN;
+  } else {
     acceleration = 0;
     velocity = 0;
   }
 
   // Set speed taking into account acceleration curve
+  float current_velocity;
   if( abs(acceleration*time_since_last_command) >= abs(velocity) ) { // already reached constant velocity
-    vel_actual_right = velocity;
-    vel_actual_left = vel_actual_right;
+    current_velocity = velocity;
   } else {                                                // still on acceleration curve
-    vel_actual_right = acceleration*time_since_last_command;
-    vel_actual_left = vel_actual_right;
+    current_velocity = acceleration*time_since_last_command;
+  }
+
+  if(command == 0 || command == 1 || command == 2){
+      vel_actual_right = current_velocity;
+      vel_actual_left = vel_actual_right;
+  } else if( command == 3){
+    vel_actual_right = current_velocity;
+    vel_actual_left = - vel_actual_right;
+  } else if( command == 4){
+    vel_actual_left = current_velocity;
+    vel_actual_right = - vel_actual_left;
   }
 }
 
-
 void send_wheelchair_command(int command) {
-  switch(command) {
+  switch(command) { // LOGICA INVERSA RELÉ
     case 0:
-      digitalWrite(pinONOFF, LOW);
-      break;
-      
-    case 1:
       digitalWrite(pinFORWARD, HIGH);
+      digitalWrite(pinREVERSE, HIGH);
+      digitalWrite(pinLEFT, HIGH);
+      digitalWrite(pinRIGHT, HIGH);
+      break;
+
+    case 1:
+      digitalWrite(pinREVERSE, HIGH);
+      digitalWrite(pinLEFT, HIGH);
+      digitalWrite(pinRIGHT, HIGH);
+      digitalWrite(pinFORWARD, LOW);
       break;
 
     case 2:
+      digitalWrite(pinFORWARD, HIGH);
+      digitalWrite(pinLEFT, HIGH);
+      digitalWrite(pinRIGHT, HIGH);
+      digitalWrite(pinREVERSE, LOW);
+      break;
+
+    case 3:
+      digitalWrite(pinFORWARD, HIGH);
       digitalWrite(pinREVERSE, HIGH);
-      break;    
+      digitalWrite(pinRIGHT, HIGH);
+      digitalWrite(pinLEFT, LOW);
+      break;
+
+    case 4:
+      digitalWrite(pinFORWARD, HIGH);
+      digitalWrite(pinREVERSE, HIGH);
+      digitalWrite(pinLEFT, HIGH);
+      digitalWrite(pinRIGHT, LOW);
+      break;
+      
   }
 }
-
 
 /* -------------- */ 
 /* Main functions */
@@ -135,14 +182,11 @@ void setup() {
 
   joystick_x = 0;
   joystick_y = 0;
-  joystick_button = 0;
   prev_joystick_x = 0;
   prev_joystick_y = 0;
-  prev_joystick_button = 0;
 
   command = 0;
   is_new_command = true;
-  is_wheelchair_on = true;
 
   // Init Node Handle
   nh.initNode();
@@ -152,11 +196,11 @@ void setup() {
   // Set Arduino pins
   pinMode(pinJoyX, INPUT);
   pinMode(pinJoyY, INPUT);
-  pinMode(pinJoyButton, INPUT_PULLUP);
 
   pinMode(pinFORWARD, OUTPUT);
   pinMode(pinREVERSE, OUTPUT);
-  pinMode(pinONOFF, OUTPUT);
+  pinMode(pinLEFT, OUTPUT);
+  pinMode(pinRIGHT, OUTPUT);
   
   Serial.begin(57600);
 
@@ -166,45 +210,33 @@ void loop() {
   unsigned long time = millis();
 
   if(time - lastMilli >= LOOPTIME) {
-    joystick_button = digitalRead(pinJoyButton);
+    // If wheelchair ON, read x, y data from joystick and convert into directions
+    joystick_x = analogRead(pinJoyX);
+    delay(100);
+    joystick_y = analogRead(pinJoyY);
 
-//    // if button, change to ON or OFF
-//    if(joystick_button == 0) {
-//      is_wheelchair_on = !is_wheelchair_on;
-//
-//      prev_joystick_button = joystick_button;
-//    }
-
-    if( is_wheelchair_on ) {
-
-      // If wheelchair ON, read x, y data from joystick and convert into directions
-      joystick_x = analogRead(pinJoyX);
-      delay(100);
-      joystick_y = analogRead(pinJoyY);
-  
-      if( (abs(joystick_x - prev_joystick_x) > 20 ) || (abs(joystick_y - prev_joystick_y) > 20) ) {
-        command = get_actual_directions(joystick_x, joystick_y);
-        is_new_command = true;
-      }
-      
-      prev_joystick_x = joystick_x;
-      prev_joystick_y = joystick_y;
-
-      // Send command to the chair
-      send_wheelchair_command(command);
-      
-      // Get velocity from the commands and publish the actual velocity of the wheels
-      if( is_new_command ){
-        time_since_last_command = 0;
-        is_new_command = false;
-      }
-      else
-        time_since_last_command = time_since_last_command + LOOPTIME;
-  
-      get_actual_velocity(time_since_last_command, command);
-      publish_velocity(time - lastMilli);
-      lastMilli = time;
+    if( (abs(joystick_x - prev_joystick_x) > 20 ) || (abs(joystick_y - prev_joystick_y) > 20) ) {
+      command = get_actual_directions(joystick_x, joystick_y);
+      is_new_command = true;
     }
+    
+    prev_joystick_x = joystick_x;
+    prev_joystick_y = joystick_y;
+
+    // Send command to the chair
+    send_wheelchair_command(command);
+    
+    // Get velocity from the commands and publish the actual velocity of the wheels
+    if( is_new_command ){
+      time_since_last_command = 0;
+      is_new_command = false;
+    }
+    else
+      time_since_last_command = time_since_last_command + LOOPTIME;
+
+    get_actual_velocity(time_since_last_command, command);
+    publish_velocity(time - lastMilli);
+    lastMilli = time;
   }
 
 }

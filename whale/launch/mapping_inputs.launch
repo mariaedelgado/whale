@@ -1,6 +1,6 @@
 <launch>
   <!-- CHANGE TF ARGS FOR OUR SYSTEM http://wiki.ros.org/navigation/Tutorials/RobotSetup/TF#Transform_Configuration /-->
-  <node pkg="tf" type="static_transform_publisher" name="base_to_kinect_broadcaster" args="-0.17 0.04 0.1975 0 0 0 \/base_link \/camera_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="base_to_kinect_broadcaster" args="0.1 0.1 0.1 0 0 0 \/base_link \/camera_link 100" />
  
   <!--we use the kinect sensor as a fake laser scanner /-->
   <include file="kinect_laser.launch" />
@@ -11,14 +11,7 @@
     <param name="baud" value="57600" />
   </node>
 
-  <node name="base_controller_node" pkg="whale" type="base_controller">
-    <param name="publish_rate" value="10.0" />
-    <param name="linear_scale_positive" value="0.99" />
-    <param name="linear_scale_negative" value="0.99" />
-    <param name="angular_scale_positive" value="1.0" />
-    <param name="angular_scale_negative" value="1.0" />
-    <param name="angular_scale_accel" value="0.0" />
-
+  <node name="base_controller_node" pkg="whale_package" type="base_controller">
   </node>
 
 </launch>
